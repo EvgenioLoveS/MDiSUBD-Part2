@@ -1,0 +1,1 @@
+SELECT * FROM MyTable WHERE id <= 100;

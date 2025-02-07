@@ -1,0 +1,1 @@
+SELECT Calculate_Annual_Compensation(5000, 10) FROM DUAL;

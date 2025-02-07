@@ -1,0 +1,1 @@
+SELECT Check_Even_Odd FROM dual;
