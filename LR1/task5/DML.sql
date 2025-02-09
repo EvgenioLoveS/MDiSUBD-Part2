@@ -1,16 +1,19 @@
-CREATE OR REPLACE PROCEDURE Insert_MyTable(p_id NUMBER, p_val NUMBER)
+CREATE OR REPLACE PROCEDURE Insert_MyTable(p_val NUMBER)
 IS
+    v_id NUMBER;
 BEGIN
-    INSERT INTO MyTable (id, val) VALUES (p_id, p_val);
+    -- Определение нового ID как максимального + 1
+    SELECT NVL(MAX(id), 0) + 1 INTO v_id FROM MyTable;
+
+    INSERT INTO MyTable (id, val) VALUES (v_id, p_val);
     COMMIT;
-    DBMS_OUTPUT.PUT_LINE('Запись успешно добавлена: ID = ' || p_id || ', VAL = ' || p_val || '.');
+    DBMS_OUTPUT.PUT_LINE('Запись успешно добавлена: ID = ' || v_id || ', VAL = ' || p_val || '.');
 EXCEPTION
-    WHEN DUP_VAL_ON_INDEX THEN
-        DBMS_OUTPUT.PUT_LINE('Ошибка: Запись с ID ' || p_id || ' уже существует.');
     WHEN OTHERS THEN
         DBMS_OUTPUT.PUT_LINE('Ошибка при вставке: ' || SQLERRM);
 END;
 /
+
 
 CREATE OR REPLACE PROCEDURE Update_MyTable(p_id NUMBER, p_val NUMBER)
 IS

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="SqlDialectMappings">
+    <file url="file://$PROJECT_DIR$/task1/CreateTable.sql" dialect="Oracle" />
+    <file url="file://$PROJECT_DIR$/task1/select.sql" dialect="Oracle" />
+    <file url="file://$PROJECT_DIR$/task2/Initialize.sql" dialect="Oracle" />
+    <file url="file://$PROJECT_DIR$/task2/select2.sql" dialect="Oracle" />
+    <file url="file://$PROJECT_DIR$/task3/EvenOdd.sql" dialect="Oracle" />
+    <file url="file://$PROJECT_DIR$/task3/TestFunction.sql" dialect="Oracle" />
+    <file url="file://$PROJECT_DIR$/task4/GenerateInsertCommand.sql" dialect="Oracle" />
+    <file url="file://$PROJECT_DIR$/task4/TestFunction2.sql" dialect="Oracle" />
+    <file url="file://$PROJECT_DIR$/task5/DML.sql" dialect="Oracle" />
+    <file url="file://$PROJECT_DIR$/task5/TestDML.sql" dialect="Oracle" />
+    <file url="file://$PROJECT_DIR$/../LR2/task1/create_tables.sql" dialect="Oracle" />
+    <file url="file://$PROJECT_DIR$/../LR2/task2/auto_increment_and_checks.sql" dialect="Oracle" />
+    <file url="file://$PROJECT_DIR$/../LR2/task3/groups_cascade_delete.sql" dialect="Oracle" />
+    <file url="PROJECT" dialect="Oracle" />
+  </component>
+</project>

@@ -1,4 +1,6 @@
 CREATE TABLE MyTable (
-    id NUMBER,
+    id NUMBER PRIMARY KEY,
     val NUMBER
 );
+
+DROP TABLE MyTable;

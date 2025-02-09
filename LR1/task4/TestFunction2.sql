@@ -1,1 +1,1 @@
-SELECT Generate_Insert_Command(99999) FROM dual;
+SELECT Generate_Insert_Command(5) FROM dual;

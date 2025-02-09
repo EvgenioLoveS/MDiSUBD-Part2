@@ -1,1 +1,2 @@
-SELECT * FROM MyTable WHERE id <= 100;
+SELECT * FROM MyTable WHERE id <= 10;
+SELECT * FROM MyTable WHERE id = 10001;

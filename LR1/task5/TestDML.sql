@@ -1,10 +1,10 @@
 BEGIN
-    Insert_MyTable(10001, 1);
+    Insert_MyTable(51);
 END;
 /
 
 BEGIN
-    Update_MyTable(10001, 2);
+    Update_MyTable(10000, 2000);
 END;
 /
 
