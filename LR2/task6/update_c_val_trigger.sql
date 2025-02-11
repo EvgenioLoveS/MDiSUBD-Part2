@@ -1,0 +1,8 @@
+CREATE OR REPLACE TRIGGER students_group_update
+AFTER INSERT OR DELETE OR UPDATE ON STUDENTS
+BEGIN
+    -- Обновляем C_VAL для всех групп
+    UPDATE GROUPS g
+    SET C_VAL = (SELECT COUNT(*) FROM STUDENTS s WHERE s.GROUP_ID = g.ID);
+END;
+/
