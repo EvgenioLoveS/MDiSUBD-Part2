@@ -1,55 +1,34 @@
--- Дроп таблицы --
 
 DROP TABLE GROUPS;
 DROP TABLE STUDENTS;
-DROP TABLE STUDENTS_AUDIT;
+DROP TABLE STUDENTS_LOG;
 
--- Тест первой таски --
+
+DELETE GROUPS;
+DELETE STUDENTS;
+DELETE STUDENTS_LOG;
 
 select * from STUDENTS;
 select * from GROUPS;
-select * from STUDENTS_AUDIT;
+select * from STUDENTS_LOG;
 
--- Тест второй таски --
+INSERT INTO GROUPS (ID, NAME, C_VAL) VALUES (1,'Group B', 0);
+INSERT INTO GROUPS (ID, NAME, C_VAL) VALUES (2, 'Group B', 0);
 
--- Попытка вставить дублирующееся имя группы
-INSERT INTO GROUPS (NAME) VALUES ('Group B');
--- Попытка вставить дублирующийся ID группы
-INSERT INTO GROUPS (ID, NAME) VALUES (1, 'Group B'); -- Ошибка: "Группа с таким ID уже существует!"
--- Попытка вставить дублирующийся ID студента
-INSERT INTO STUDENTS (ID, NAME, GROUP_ID) VALUES (2, 'Jane Doe', 1); -- Ошибка: "Студент с таким ID уже существует!"
+INSERT INTO STUDENTS (ID, NAME, GROUP_ID) VALUES (1, 'Name1Group1', 1);
+INSERT INTO STUDENTS (ID, NAME, GROUP_ID) VALUES (2, 'Name2Group1', 1);
+INSERT INTO STUDENTS (ID, NAME, GROUP_ID) VALUES (3, 'Name1Group2', 2);
+INSERT INTO STUDENTS (ID, NAME, GROUP_ID) VALUES (4, 'Name2Group2', 2);
 
--- Тест третьей таски --
+DELETE FROM GROUPS WHERE ID = 1;
 
--- Вставляем студентов в группу
-INSERT INTO STUDENTS (NAME, GROUP_ID) VALUES ('John 1', 2);
-INSERT INTO STUDENTS (NAME, GROUP_ID) VALUES ('Jane 2', 2);
--- Удаляем группу
-DELETE FROM GROUPS WHERE ID = 2;
+BEGIN
+    restore_students(p_offset => INTERVAL '2' MINUTE);
+END;
+/
 
--- Тест четвертой таски --
+BEGIN
+    restore_students(p_time => TO_TIMESTAMP('2025-02-23 15:29:01.527000', 'YYYY-MM-DD HH24:MI:SS.FF'));
+END;
+/
 
-INSERT INTO STUDENTS (NAME, GROUP_ID) VALUES ('NameOfGroup1', 1);
-
--- Тест пятой таски --
-INSERT INTO GROUPS (NAME) VALUES ('Group A');
-INSERT INTO STUDENTS (NAME, GROUP_ID) VALUES ('Anna', 1);
-INSERT INTO STUDENTS (NAME, GROUP_ID) VALUES ( 'Dima', 1);
-INSERT INTO STUDENTS (NAME, GROUP_ID) VALUES ( 'Zhenya', 1);
-UPDATE STUDENTS SET NAME = 'Jane Smith' WHERE ID = 2;
-DELETE FROM STUDENTS WHERE ID = 1;
-
-CALL restore_students_to_time(TO_TIMESTAMP('2025-02-10 21:30:26.745000', 'YYYY-MM-DD HH24:MI:SS.FF'));
-CALL restore_students_to_offset(199);
-
--- Тест шестой таски --
-
-INSERT INTO GROUPS (NAME,C_VAL) VALUES ('Group A', 0);
-
-INSERT INTO STUDENTS (ID, NAME, GROUP_ID) VALUES (1, 'test2', 5);
-
-DELETE FROM STUDENTS WHERE id = 2;
-
-DELETE STUDENTS_AUDIT;
-DELETE GROUPS;
-DELETE STUDENTS;

@@ -17,8 +17,10 @@
     <file url="file://$PROJECT_DIR$/../LR2/task3/groups_cascade_delete.sql" dialect="Oracle" />
     <file url="file://$PROJECT_DIR$/../LR2/task4/students_audit_trigger.sql" dialect="Oracle" />
     <file url="file://$PROJECT_DIR$/../LR2/task5/restore_students_to_offset.sql" dialect="Oracle" />
-    <file url="file://$PROJECT_DIR$/../LR2/task5/restore_students_to_time.sql" dialect="Oracle" />
     <file url="file://$PROJECT_DIR$/../LR2/task6/update_c_val_trigger.sql" dialect="Oracle" />
+    <file url="file://$PROJECT_DIR$/../LR3/compare_tables.sql" dialect="Oracle" />
+    <file url="file://$PROJECT_DIR$/../LR3/dev.sql" dialect="Oracle" />
+    <file url="file://$PROJECT_DIR$/../LR3/prod.sql" dialect="Oracle" />
     <file url="PROJECT" dialect="Oracle" />
   </component>
 </project>

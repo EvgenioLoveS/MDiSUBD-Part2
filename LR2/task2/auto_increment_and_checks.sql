@@ -1,14 +1,8 @@
--- Реализация триггеров для таблиц STUDENTS и GROUPS
-
 DROP SEQUENCE groups_seq;
 DROP SEQUENCE  students_seq;
 
 -- 1. Создание последовательностей для генерации автоинкрементных ключей
-
--- Последовательность для таблицы GROUPS
 CREATE SEQUENCE groups_seq START WITH 1 INCREMENT BY 1;
-
--- Последовательность для таблицы STUDENTS
 CREATE SEQUENCE students_seq START WITH 1 INCREMENT BY 1;
 
 
@@ -18,7 +12,7 @@ BEFORE INSERT ON GROUPS
 FOR EACH ROW
 BEGIN
     IF :NEW.ID IS NULL THEN
-        SELECT groups_seq.NEXTVAL INTO :NEW.ID FROM dual;
+        :NEW.ID := groups_seq.NEXTVAL;
     END IF;
 END;
 /
@@ -30,91 +24,47 @@ BEFORE INSERT ON STUDENTS
 FOR EACH ROW
 BEGIN
     IF :NEW.ID IS NULL THEN
-        SELECT students_seq.NEXTVAL INTO :NEW.ID FROM dual;
+        :NEW.ID := students_seq.NEXTVAL;
     END IF;
 END;
 /
 
 
 -- 4. Триггер для проверки уникальности поля NAME в таблице GROUPS
-CREATE OR REPLACE TRIGGER groups_name_unique
+CREATE OR REPLACE PACKAGE pkg_groups_validation IS
+    TYPE t_name_table IS TABLE OF VARCHAR2(100) INDEX BY PLS_INTEGER;
+    g_names t_name_table;
+END pkg_groups_validation;
+/
+
+CREATE OR REPLACE TRIGGER trg_groups_before
 BEFORE INSERT OR UPDATE ON GROUPS
 FOR EACH ROW
-DECLARE
-    PRAGMA AUTONOMOUS_TRANSACTION; -- Делаем проверку в независимой транзакции
-    v_count NUMBER;
 BEGIN
-    -- Проверяем уникальность имени группы
-    SELECT COUNT(*) INTO v_count
-    FROM GROUPS
-    WHERE NAME = :NEW.NAME AND ID != :NEW.ID; -- Исключаем текущую строку при обновлении
-
-    -- Если имя уже существует, выбрасываем исключение
-    IF v_count > 0 THEN
-        RAISE_APPLICATION_ERROR(-20001, 'Группа с таким именем уже существует!');
-    END IF;
-
-    -- Завершаем автономную транзакцию
-    COMMIT;
+    -- Сохраняем новое значение имени в коллекции
+    pkg_groups_validation.g_names(pkg_groups_validation.g_names.COUNT + 1) := :NEW.NAME;
 END;
 /
 
-
--- 5. Создаем триггер для проверки уникальности ID GROUPS
-CREATE OR REPLACE TRIGGER groups_id_unique
-BEFORE INSERT OR UPDATE ON GROUPS
-FOR EACH ROW
+CREATE OR REPLACE TRIGGER trg_groups_after
+AFTER INSERT OR UPDATE ON GROUPS
 DECLARE
-    PRAGMA AUTONOMOUS_TRANSACTION; -- Избегаем ошибки ORA-04091
     v_count NUMBER;
 BEGIN
-    -- Проверяем уникальность ID с помощью автономной транзакции
-    SELECT COUNT(*) INTO v_count
-    FROM GROUPS
-    WHERE ID = :NEW.ID;
+    -- Проверяем уникальность имен из коллекции
+    FOR i IN 1 .. pkg_groups_validation.g_names.COUNT LOOP
+        SELECT COUNT(*)
+        INTO v_count
+        FROM GROUPS
+        WHERE NAME = pkg_groups_validation.g_names(i);
 
-    -- Если ID уже существует, выбрасываем исключение
-    IF v_count > 0 THEN
-        RAISE_APPLICATION_ERROR(-20002, 'Группа с таким ID уже существует!');
-    END IF;
-END;
-/
-
-
--- 6. Создаем составной триггер для проверки уникальности ID STUDENTS
-CREATE OR REPLACE TRIGGER students_id_unique
-FOR INSERT OR UPDATE ON STUDENTS
-COMPOUND TRIGGER
-
-    -- Переменная для хранения нового ID
-    new_id STUDENTS.ID%TYPE;
-
-    -- Этап BEFORE EACH ROW: сохраняем новое значение ID
-    BEFORE EACH ROW IS
-    BEGIN
-        new_id := :NEW.ID;
-    END BEFORE EACH ROW;
-
-    -- Этап AFTER STATEMENT: проверяем уникальность ID
-    AFTER STATEMENT IS
-        v_count NUMBER;
-    BEGIN
-        -- Проверяем, существует ли уже студент с таким ID
-        SELECT COUNT(*) INTO v_count
-        FROM STUDENTS
-        WHERE ID = new_id;
-
-        -- Если ID уже существует, выбрасываем исключение
         IF v_count > 1 THEN
-            RAISE_APPLICATION_ERROR(-20003, 'Студент с таким ID уже существует!');
+            -- Если найдено больше одной записи с таким именем, выбрасываем ошибку
+            RAISE_APPLICATION_ERROR(-20001, 'Имя должно быть уникальным: ' || pkg_groups_validation.g_names(i));
         END IF;
-    END AFTER STATEMENT;
-END students_id_unique;
+    END LOOP;
+
+    -- Очищаем коллекцию
+    pkg_groups_validation.g_names.DELETE;
+END;
 /
-
-
-
-
-
-
-

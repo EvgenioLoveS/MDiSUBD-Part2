@@ -1,8 +1,47 @@
-CREATE OR REPLACE TRIGGER students_group_update
-AFTER INSERT OR DELETE OR UPDATE ON STUDENTS
+CREATE OR REPLACE TRIGGER update_c_val
+AFTER INSERT OR UPDATE OR DELETE ON STUDENTS
+FOR EACH ROW
 BEGIN
-    -- Обновляем C_VAL для всех групп
-    UPDATE GROUPS g
-    SET C_VAL = (SELECT COUNT(*) FROM STUDENTS s WHERE s.GROUP_ID = g.ID);
+    IF INSERTING THEN
+        BEGIN
+            UPDATE GROUPS
+            SET C_VAL = C_VAL + 1
+            WHERE ID = :NEW.GROUP_ID;
+        EXCEPTION
+            WHEN NO_DATA_FOUND THEN
+                DBMS_OUTPUT.PUT_LINE('Группа ' || :NEW.GROUP_ID || ' не найдена.');
+        END;
+    ELSIF UPDATING THEN
+        IF :OLD.GROUP_ID != :NEW.GROUP_ID THEN
+            BEGIN
+                UPDATE GROUPS
+                SET C_VAL = C_VAL - 1
+                WHERE ID = :OLD.GROUP_ID;
+            EXCEPTION
+                WHEN NO_DATA_FOUND THEN
+                    NULL;
+            END;
+
+            BEGIN
+                UPDATE GROUPS
+                SET C_VAL = C_VAL + 1
+                WHERE ID = :NEW.GROUP_ID;
+            EXCEPTION
+                WHEN NO_DATA_FOUND THEN
+                    DBMS_OUTPUT.PUT_LINE('Группа ' || :NEW.GROUP_ID || ' не найдена.');
+            END;
+        END IF;
+    ELSIF DELETING THEN
+        IF NOT cascade_ctx.g_is_cascade_delete THEN
+            BEGIN
+                UPDATE GROUPS
+                SET C_VAL = C_VAL - 1
+                WHERE ID = :OLD.GROUP_ID;
+            EXCEPTION
+                WHEN NO_DATA_FOUND THEN
+                    DBMS_OUTPUT.PUT_LINE('Группа ' || :OLD.GROUP_ID || ' не найдена.');
+            END;
+        END IF;
+    END IF;
 END;
 /

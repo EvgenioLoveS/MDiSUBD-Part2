@@ -1,13 +1,18 @@
--- Реализация триггера для каскадного удаления между таблицами STUDENTS и GROUPS
+CREATE OR REPLACE PACKAGE cascade_ctx AS
+    g_is_cascade_delete BOOLEAN := FALSE;
+END cascade_ctx;
+/
 
--- 1. Триггер для каскадного удаления студентов при удалении группы
 CREATE OR REPLACE TRIGGER groups_cascade_delete
 BEFORE DELETE ON GROUPS
 FOR EACH ROW
-DECLARE
-    PRAGMA AUTONOMOUS_TRANSACTION; -- Независимая транзакция
 BEGIN
+    cascade_ctx.g_is_cascade_delete := TRUE;
     DELETE FROM STUDENTS WHERE GROUP_ID = :OLD.ID;
-    COMMIT; -- Фиксируем удаление студентов
+    cascade_ctx.g_is_cascade_delete := FALSE;
+EXCEPTION
+    WHEN OTHERS THEN
+        cascade_ctx.g_is_cascade_delete := FALSE;
+        RAISE;
 END;
 /

@@ -1,0 +1,15 @@
+-- Создание пользователя C##PROD
+CREATE USER C##PROD IDENTIFIED BY qwerty;
+GRANT ALL PRIVILEGES TO C##PROD;
+
+-- Создание таблиц в схеме C##PROD
+CREATE TABLE C##PROD.ISSUES
+(
+    ID NUMBER
+);
+
+CREATE TABLE C##PROD.USERS
+(
+    ID   NUMBER PRIMARY KEY,
+    NAME VARCHAR2(255)
+);
