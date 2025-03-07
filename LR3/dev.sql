@@ -1,43 +1,102 @@
--- Создание пользователя C##DEV
-CREATE USER C##DEV IDENTIFIED BY qwerty;
-GRANT ALL PRIVILEGES TO C##DEV;
+-- Создание пользователя dev
+CREATE USER c##devv IDENTIFIED BY devv_password;
+GRANT CONNECT, RESOURCE TO c##devv;
+GRANT SELECT ANY DICTIONARY TO c##devv;
+ALTER USER c##devv QUOTA UNLIMITED ON USERS;
+--DROP USER c##devv CASCADE;
 
--- Создание таблиц в схеме C##DEV
-CREATE TABLE C##DEV.USERS
-(
-    ID   NUMBER PRIMARY KEY,
-    NAME VARCHAR2(255)
+-- Создание таблиц в схеме c##dev
+CREATE TABLE c##devv.A (
+  id   NUMBER PRIMARY KEY,
+  name VARCHAR2(50)
 );
 
-CREATE TABLE C##DEV.ISSUES
-(
-    ID      NUMBER,
-    TITLE   VARCHAR2(255),
-    USER_ID NUMBER REFERENCES C##DEV.USERS (ID)
+CREATE TABLE c##devv.B (
+  id          NUMBER PRIMARY KEY,
+  a_id        NUMBER,
+  description VARCHAR2(100),
+  CONSTRAINT fk_b_a FOREIGN KEY (a_id) REFERENCES c##devv.A(id)
 );
 
-CREATE TABLE C##DEV.TASKS
-(
-    ID NUMBER
+CREATE TABLE c##devv.C (
+  id   NUMBER PRIMARY KEY,
+  b_id NUMBER,
+  info VARCHAR2(100),
+  CONSTRAINT fk_c_b FOREIGN KEY (b_id) REFERENCES c##devv.B(id)
 );
 
--- Создание уникального индекса
-CREATE UNIQUE INDEX C##DEV.ISSUES_UNIQ ON C##DEV.ISSUES (TITLE);
+-- Таблица, которая есть только в dev
+CREATE TABLE c##devv.D (
+  id   NUMBER PRIMARY KEY,
+  data VARCHAR2(100)
+);
 
--- Создание функции
-CREATE OR REPLACE FUNCTION C##DEV.TEST RETURN VARCHAR2 IS
+-- Таблица с другой структурой в dev
+CREATE TABLE c##devv.E (
+  id   NUMBER PRIMARY KEY,
+  name VARCHAR2(100),
+  age  NUMBER
+);
+
+-- Создание процедуры в схеме c##dev
+CREATE OR REPLACE PROCEDURE c##devv.PROC_DEV AS
 BEGIN
-    RETURN 'HELLO WORLD!';
+  DBMS_OUTPUT.PUT_LINE('DEV версия процедуры');
 END;
 /
 
--- Создание триггера
-CREATE OR REPLACE TRIGGER C##DEV.TEST_TRIGGER
-    BEFORE DELETE OR INSERT OR UPDATE
-    ON C##DEV.ISSUES
-    FOR EACH ROW
-DECLARE
+-- Процедура, которая есть только в dev
+CREATE OR REPLACE PROCEDURE c##devv.PROC_DEV_ONLY AS
 BEGIN
-    DBMS_OUTPUT.PUT_LINE('TEST TRIGGER');
+  DBMS_OUTPUT.PUT_LINE('DEV версия процедуры, которой нет в prod');
 END;
 /
+
+-- Создание функции в схеме c##dev
+CREATE OR REPLACE FUNCTION c##devv.FUNC_DEV RETURN VARCHAR2 AS
+BEGIN
+  RETURN 'DEV функция';
+END;
+/
+
+-- Функция, которая есть только в dev
+CREATE OR REPLACE FUNCTION c##devv.FUNC_DEV_ONLY RETURN VARCHAR2 AS
+BEGIN
+  RETURN 'DEV функция, которой нет в prod';
+END;
+/
+
+-- Создание пакета в схеме c##dev
+CREATE OR REPLACE PACKAGE c##devv.PKG_DEV AS
+  PROCEDURE pkg_proc;
+END;
+/
+
+-- Создание тела пакета в схеме c##dev
+CREATE OR REPLACE PACKAGE BODY c##devv.PKG_DEV AS
+  PROCEDURE pkg_proc IS
+  BEGIN
+    DBMS_OUTPUT.PUT_LINE('DEV пакет: процедура');
+  END;
+END;
+/
+
+-- Пакет, который есть только в dev
+CREATE OR REPLACE PACKAGE c##devv.PKG_DEV_ONLY AS
+  PROCEDURE pkg_proc_only;
+END;
+/
+
+CREATE OR REPLACE PACKAGE BODY c##devv.PKG_DEV_ONLY AS
+  PROCEDURE pkg_proc_only IS
+  BEGIN
+    DBMS_OUTPUT.PUT_LINE('DEV пакет: процедура, которой нет в prod');
+  END;
+END;
+/
+
+-- Создание индекса в схеме c##dev
+CREATE INDEX c##devv.IDX_B_DESCRIPTION ON c##devv.B(description);
+
+-- Индекс, который есть только в dev
+CREATE INDEX c##devv.IDX_E_NAME ON c##devv.E(name);
