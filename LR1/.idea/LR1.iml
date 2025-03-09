@@ -5,6 +5,7 @@
     <content url="file://$MODULE_DIR$/../LR2" />
     <content url="file://$MODULE_DIR$/../LR3" />
     <content url="file://$MODULE_DIR$/../LR4" />
+    <content url="file://$MODULE_DIR$/../LR5" />
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
   </component>

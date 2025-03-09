@@ -24,6 +24,11 @@
     <file url="file://$PROJECT_DIR$/../LR4/database_init.sql" dialect="Oracle" />
     <file url="file://$PROJECT_DIR$/../LR4/dynamic_sql_executor.sql" dialect="Oracle" />
     <file url="file://$PROJECT_DIR$/../LR4/dynamic_sql_tests.sql" dialect="Oracle" />
+    <file url="file://$PROJECT_DIR$/../LR5/create_tables.sql" dialect="Oracle" />
+    <file url="file://$PROJECT_DIR$/../LR5/report_pkg.sql" dialect="Oracle" />
+    <file url="file://$PROJECT_DIR$/../LR5/rollback_pkg.sql" dialect="Oracle" />
+    <file url="file://$PROJECT_DIR$/../LR5/test_queries.sql" dialect="Oracle" />
+    <file url="file://$PROJECT_DIR$/../LR5/triggers.sql" dialect="Oracle" />
     <file url="PROJECT" dialect="Oracle" />
   </component>
 </project>
