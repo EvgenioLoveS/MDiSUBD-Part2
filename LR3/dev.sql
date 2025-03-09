@@ -100,3 +100,44 @@ CREATE INDEX c##devv.IDX_B_DESCRIPTION ON c##devv.B(description);
 
 -- Индекс, который есть только в dev
 CREATE INDEX c##devv.IDX_E_NAME ON c##devv.E(name);
+
+
+-- Создание таблицы X
+-- CREATE TABLE c##devv.X (
+--     id   NUMBER PRIMARY KEY,
+--     y_id NUMBER,
+--     data VARCHAR2(100)
+-- );
+
+-- Создание таблицы Y
+-- CREATE TABLE c##devv.Y (
+--     id   NUMBER PRIMARY KEY,
+--     x_id NUMBER,
+--     info VARCHAR2(100)
+-- );
+
+-- Добавление внешнего ключа в таблицу X, ссылающегося на таблицу Y
+-- ALTER TABLE c##devv.X
+-- ADD CONSTRAINT fk_x_y
+-- FOREIGN KEY (y_id) REFERENCES c##devv.Y(id);
+
+-- Добавление внешнего ключа в таблицу Y, ссылающегося на таблицу X
+-- ALTER TABLE c##devv.Y
+-- ADD CONSTRAINT fk_y_x
+-- FOREIGN KEY (x_id) REFERENCES c##devv.X(id);
+
+
+-- Таблица G, которая ссылается на таблицу F
+CREATE TABLE c##devv.G (
+    id   NUMBER PRIMARY KEY,
+    info VARCHAR2(100)
+);
+
+-- Таблица H, которая ссылается на таблицу G
+CREATE TABLE c##devv.H (
+    id   NUMBER PRIMARY KEY,
+    g_id NUMBER,
+    data VARCHAR2(100),
+    CONSTRAINT fk_h_g FOREIGN KEY (g_id) REFERENCES c##devv.G(id)
+);
+
