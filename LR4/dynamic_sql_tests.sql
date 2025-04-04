@@ -119,6 +119,41 @@ BEGIN
 END;
 /
 
+-- Тест 1.4: SELECT запрос с MAX (выборка максимального года публикации среди всех книг)
+DECLARE
+  v_json_input CLOB := '{
+    "query_type": "SELECT",
+    "select_columns": "MAX(published_year) AS max_published_year",
+    "tables": "books"
+  }';
+
+  v_cursor  SYS_REFCURSOR;
+  v_rows    NUMBER;
+  v_message VARCHAR2(4000);
+
+  v_max_published_year NUMBER;
+
+BEGIN
+  dynamic_sql_executor(
+    p_json    => v_json_input,
+    p_cursor  => v_cursor,
+    p_rows    => v_rows,
+    p_message => v_message
+  );
+
+  DBMS_OUTPUT.PUT_LINE('Тест 1.4: SELECT запрос с MAX (выборка максимального года публикации среди всех книг)');
+  DBMS_OUTPUT.PUT_LINE('Результат операции: ' || v_message);
+
+  LOOP
+    FETCH v_cursor INTO v_max_published_year;
+    EXIT WHEN v_cursor%NOTFOUND;
+    DBMS_OUTPUT.PUT_LINE('Max Published Year: ' || v_max_published_year);
+  END LOOP;
+
+  CLOSE v_cursor;
+END;
+/
+
 --------------------------------------------------
 -- Блок 2: Вложенные запросы
 --------------------------------------------------

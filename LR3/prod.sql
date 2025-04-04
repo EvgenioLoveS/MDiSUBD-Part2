@@ -3,26 +3,7 @@ CREATE USER c##prod IDENTIFIED BY prod_password;
 GRANT CONNECT, RESOURCE TO c##prod;
 GRANT SELECT ANY DICTIONARY TO c##prod;
 ALTER USER c##prod QUOTA UNLIMITED ON USERS;
---DROP USER c##prod CASCADE;
 
--- Создание таблиц в схеме c##prod
-CREATE TABLE c##prod.A (
-  id   NUMBER PRIMARY KEY,
-  name VARCHAR2(50)
-);
-
-CREATE TABLE c##prod.B (
-  id          NUMBER PRIMARY KEY,
-  a_id        NUMBER,
-  description VARCHAR2(50),
-  CONSTRAINT fk_b_a FOREIGN KEY (a_id) REFERENCES c##prod.A(id)
-);
-
--- Таблица, которая есть только в prod
-CREATE TABLE c##prod.F (
-  id   NUMBER PRIMARY KEY,
-  data VARCHAR2(100)
-);
 
 -- Таблица с другой структурой в prod
 CREATE TABLE c##prod.E (
@@ -87,8 +68,36 @@ CREATE OR REPLACE PACKAGE BODY c##prod.PKG_PROD_ONLY AS
 END;
 /
 
--- Создание индекса в схеме c##prod
-CREATE INDEX c##prod.IDX_B_DESCRIPTION ON c##prod.B(description);
 
--- Индекс, который есть только в prod
-CREATE INDEX c##prod.IDX_F_DATA ON c##prod.F(data);
+
+-- ЕСЛИ НАДО ВСЕ ОЧИСТИТЬ В PROD
+BEGIN
+    -- Удаление всех таблиц
+    FOR rec IN (SELECT table_name FROM all_tables WHERE owner = 'C##PROD') LOOP
+        EXECUTE IMMEDIATE 'DROP TABLE c##prod.' || rec.table_name || ' CASCADE CONSTRAINTS';
+    END LOOP;
+
+    -- Удаление всех процедур
+    FOR rec IN (SELECT object_name FROM all_objects WHERE owner = 'C##PROD' AND object_type = 'PROCEDURE') LOOP
+        EXECUTE IMMEDIATE 'DROP PROCEDURE c##prod.' || rec.object_name;
+    END LOOP;
+
+    -- Удаление всех функций
+    FOR rec IN (SELECT object_name FROM all_objects WHERE owner = 'C##PROD' AND object_type = 'FUNCTION') LOOP
+        EXECUTE IMMEDIATE 'DROP FUNCTION c##prod.' || rec.object_name;
+    END LOOP;
+
+    -- Удаление всех пакетов
+    FOR rec IN (SELECT object_name FROM all_objects WHERE owner = 'C##PROD' AND object_type = 'PACKAGE') LOOP
+        EXECUTE IMMEDIATE 'DROP PACKAGE c##prod.' || rec.object_name;
+    END LOOP;
+
+    -- Удаление всех индексов
+    FOR rec IN (SELECT index_name FROM all_indexes WHERE table_owner = 'C##PROD') LOOP
+        EXECUTE IMMEDIATE 'DROP INDEX c##prod.' || rec.index_name;
+    END LOOP;
+
+    DBMS_OUTPUT.PUT_LINE('Все объекты в схеме C##PROD удалены.');
+END;
+/
+

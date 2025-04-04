@@ -31,62 +31,138 @@ CREATE OR REPLACE TYPE FK_TMP IS OBJECT
 CREATE OR REPLACE TYPE FK_TMP_ARRAY IS TABLE OF FK_TMP;
 /
 
--- Функция для получения таблиц в порядке зависимостей
-CREATE OR REPLACE FUNCTION GET_SCHEME_TABLES_IN_ORDER(SCHEMA_NAME IN VARCHAR2) RETURN TABLE_ARRAY IS
-    SCHEME_ORDER        FK_TMP_ARRAY DEFAULT FK_TMP_ARRAY();
-    SCHEMA_ORDER_INDEX  INT DEFAULT 1;
-    SCHEMA_TABLES       TABLE_ARRAY DEFAULT TABLE_ARRAY();
-    SCHEMA_TABLES_INDEX INT DEFAULT 1;
-    LOOPED_TIMES        INT DEFAULT 0;
+
+CREATE OR REPLACE FUNCTION CHECK_FOR_CYCLIC_DEPENDENCIES(SCHEMA_NAME IN VARCHAR2) RETURN BOOLEAN IS
+    v_dependencies FK_TMP_ARRAY := FK_TMP_ARRAY(); -- Для хранения зависимостей
+    v_visited TABLE_ARRAY := TABLE_ARRAY(); -- Для хранения посещенных таблиц
+    v_recursion_stack TABLE_ARRAY := TABLE_ARRAY(); -- Для отслеживания текущего пути в DFS
+
+    -- Рекурсивная процедура для поиска циклов
+    PROCEDURE dfs(
+        table_name IN VARCHAR2,
+        dependencies IN FK_TMP_ARRAY,
+        visited IN OUT TABLE_ARRAY,
+        recursion_stack IN OUT TABLE_ARRAY
+    ) IS
+    BEGIN
+        IF table_name MEMBER OF recursion_stack THEN
+              DBMS_OUTPUT.PUT_LINE('CYCLE DEPENDENCY DETECTED: ' || table_name);
+              RETURN;
+        END IF;
+
+        recursion_stack.EXTEND;
+        recursion_stack(recursion_stack.COUNT) := table_name;
+
+        IF NOT table_name MEMBER OF visited THEN
+            visited.EXTEND;
+            visited(visited.COUNT) := table_name;
+
+            -- Рекурсивно обходим все таблицы, от которых зависит текущая таблица
+            FOR i IN 1 .. dependencies.COUNT LOOP
+                IF dependencies(i).CHILD_OBJ = table_name THEN
+                    dfs(dependencies(i).PARENT_OBJ, dependencies, visited, recursion_stack);
+                END IF;
+            END LOOP;
+        END IF;
+
+        recursion_stack.DELETE(recursion_stack.COUNT); -- Удаляем таблицу из стека рекурсии
+    END dfs;
+
 BEGIN
-    FOR SCHEMA_TABLE IN (SELECT TABLES.TABLE_NAME NAME FROM ALL_TABLES TABLES WHERE OWNER = SCHEMA_NAME)
-        LOOP
-            LOOPED_TIMES := 0;
+    -- Собираем зависимости между таблицами
+    FOR FK_REC IN (
+        SELECT a.table_name AS child_table, c.table_name AS parent_table
+        FROM all_constraints a
+        JOIN all_constraints c ON a.r_constraint_name = c.constraint_name
+        WHERE a.owner = SCHEMA_NAME
+          AND c.owner = SCHEMA_NAME
+          AND a.constraint_type = 'R'
+    ) LOOP
+        v_dependencies.EXTEND;
+        v_dependencies(v_dependencies.COUNT) := FK_TMP(FK_REC.child_table, FK_REC.parent_table);
+    END LOOP;
 
-            FOR RECORD IN (SELECT DISTINCT A.TABLE_NAME, C_PK.TABLE_NAME R_TABLE_NAME
-                           FROM ALL_CONS_COLUMNS A
-                                    JOIN ALL_CONSTRAINTS C
-                                         ON A.OWNER = C.OWNER AND A.CONSTRAINT_NAME = C.CONSTRAINT_NAME
-                                    JOIN ALL_CONSTRAINTS C_PK
-                                         ON C.R_OWNER = C_PK.OWNER AND C.R_CONSTRAINT_NAME = C_PK.CONSTRAINT_NAME
-                           WHERE C.CONSTRAINT_TYPE = 'R'
-                             AND A.TABLE_NAME = SCHEMA_TABLE.NAME)
-                LOOP
-                    LOOPED_TIMES := 1;
-                    SCHEME_ORDER.EXTEND;
-                    SCHEME_ORDER(SCHEMA_ORDER_INDEX) :=
-                            FK_TMP(RECORD.TABLE_NAME, RECORD.R_TABLE_NAME);
-                    SCHEMA_ORDER_INDEX := SCHEMA_ORDER_INDEX + 1;
-                END LOOP;
+    -- Выполняем поиск циклов
+    FOR i IN 1 .. v_dependencies.COUNT LOOP
+        IF NOT v_dependencies(i).CHILD_OBJ MEMBER OF v_visited THEN
+            dfs(v_dependencies(i).CHILD_OBJ, v_dependencies, v_visited, v_recursion_stack);
+        END IF;
+    END LOOP;
 
-            IF LOOPED_TIMES = 0 THEN
-                -- no constraints
-                SCHEMA_TABLES.EXTEND;
-                SCHEMA_TABLES(SCHEMA_TABLES_INDEX) := SCHEMA_TABLE.NAME;
-                SCHEMA_TABLES_INDEX := SCHEMA_TABLES_INDEX + 1;
+    -- Если циклов не обнаружено, возвращаем FALSE
+    RETURN FALSE;
+EXCEPTION
+    WHEN OTHERS THEN
+        -- Если обнаружен цикл, возвращаем TRUE
+        RETURN TRUE;
+END CHECK_FOR_CYCLIC_DEPENDENCIES;
+/
+
+
+CREATE OR REPLACE FUNCTION GET_SCHEME_TABLES_IN_ORDER(SCHEMA_NAME IN VARCHAR2) RETURN TABLE_ARRAY IS
+    v_tables TABLE_ARRAY := TABLE_ARRAY(); -- Используем TABLE_ARRAY вместо локального типа
+    v_dependencies FK_TMP_ARRAY := FK_TMP_ARRAY(); -- Для хранения зависимостей
+    v_sorted TABLE_ARRAY := TABLE_ARRAY(); -- Для хранения отсортированного списка
+    v_visited TABLE_ARRAY := TABLE_ARRAY(); -- Для хранения посещенных таблиц
+
+    -- Рекурсивная процедура для топологической сортировки
+    PROCEDURE topological_dfs(
+        table_name IN VARCHAR2,
+        dependencies IN FK_TMP_ARRAY,
+        visited IN OUT TABLE_ARRAY,
+        sorted IN OUT TABLE_ARRAY
+    ) IS
+    BEGIN
+        visited.EXTEND;
+        visited(visited.COUNT) := table_name;
+
+        -- Рекурсивно обходим все таблицы, от которых зависит текущая таблица
+        FOR i IN 1 .. dependencies.COUNT LOOP
+            IF dependencies(i).CHILD_OBJ = table_name AND NOT dependencies(i).PARENT_OBJ MEMBER OF visited THEN
+                topological_dfs(dependencies(i).PARENT_OBJ, dependencies, visited, sorted);
             END IF;
         END LOOP;
 
-    FOR FK_CUR IN (
-        SELECT CHILD_OBJ, PARENT_OBJ, CONNECT_BY_ISCYCLE
-        FROM TABLE (SCHEME_ORDER)
-        CONNECT BY NOCYCLE PRIOR PARENT_OBJ = CHILD_OBJ
-        ORDER BY LEVEL
-        )
-        LOOP
-            IF FK_CUR.CONNECT_BY_ISCYCLE = 0 THEN
-                SCHEMA_TABLES.EXTEND;
-                SCHEMA_TABLES(SCHEMA_TABLES_INDEX) := FK_CUR.CHILD_OBJ;
-                SCHEMA_TABLES_INDEX := SCHEMA_TABLES_INDEX + 1;
-            ELSE
-                RAISE_APPLICATION_ERROR(-20001, 'CYCLE DEPENDENCY ' || FK_CUR.CHILD_OBJ || '<->' ||
-                                                FK_CUR.PARENT_OBJ);
-            END IF;
-        END LOOP;
+        sorted.EXTEND;
+        sorted(sorted.COUNT) := table_name;
+    END topological_dfs;
 
-    RETURN SCHEMA_TABLES;
+BEGIN
+    -- Проверка на циклические зависимости
+    IF CHECK_FOR_CYCLIC_DEPENDENCIES(SCHEMA_NAME) THEN
+        RAISE_APPLICATION_ERROR(-20001, 'CYCLE DEPENDENCY DETECTED IN SCHEMA: ' || SCHEMA_NAME);
+    END IF;
+
+    -- Собираем все таблицы схемы
+    SELECT table_name BULK COLLECT INTO v_tables
+    FROM all_tables
+    WHERE owner = SCHEMA_NAME;
+
+    -- Собираем зависимости между таблицами
+    FOR FK_REC IN (
+        SELECT a.table_name AS child_table, c.table_name AS parent_table
+        FROM all_constraints a
+        JOIN all_constraints c ON a.r_constraint_name = c.constraint_name
+        WHERE a.owner = SCHEMA_NAME
+          AND c.owner = SCHEMA_NAME
+          AND a.constraint_type = 'R'
+    ) LOOP
+        v_dependencies.EXTEND;
+        v_dependencies(v_dependencies.COUNT) := FK_TMP(FK_REC.child_table, FK_REC.parent_table);
+    END LOOP;
+
+    -- Выполняем топологическую сортировку
+    FOR i IN 1 .. v_tables.COUNT LOOP
+        IF NOT v_tables(i) MEMBER OF v_visited THEN
+            topological_dfs(v_tables(i), v_dependencies, v_visited, v_sorted);
+        END IF;
+    END LOOP;
+
+    -- Возвращаем отсортированный список таблиц
+    RETURN v_sorted;
 END GET_SCHEME_TABLES_IN_ORDER;
 /
+
 
 -- Функция для сравнения таблиц
 CREATE OR REPLACE FUNCTION COMPARE_TABLE_DIFF(SCHEMA1 VARCHAR, SCHEMA2 VARCHAR, TABLE_TO_COMPARE VARCHAR) RETURN VARCHAR IS
@@ -141,6 +217,7 @@ BEGIN
     RETURN TEXT_RESULT;
 END;
 /
+
 
 -- Функция для сравнения кода объектов (процедур, функций, пакетов)
 CREATE OR REPLACE FUNCTION COMPARE_OBJECT_CODE(
